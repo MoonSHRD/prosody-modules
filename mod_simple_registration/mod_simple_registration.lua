@@ -251,7 +251,7 @@ module:hook("stanza/iq/moonshard:iq:register:query", function(event)
 		pending_emails[user.email] = user.user_id;
 		pending_validation_codes[user.user_id] = id.short();
 
-		local email_body = render_template(get_template("sendtoken",".mail"), {code = pending_validation_codes[user.user_id]});
+		local email_body = render_template(get_template("validation",".txt"), {code = pending_validation_codes[user.user_id]});
 		local subject = mail_subject_prefix.."email validation";
 		send_email(user.email, smtp_address, email_body, subject);
 		module:fire_event("user-registering", user);

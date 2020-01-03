@@ -255,7 +255,8 @@ module:hook("stanza/iq/moonshard:iq:register:query", function(event)
 		local subject = mail_subject_prefix.."email validation";
 		send_email(user.email, smtp_address, email_body, subject);
 		module:fire_event("user-registering", user);
-		local stanza_reply = st:reply(stanza)
+		module:log("debug", tostring(stanza))
+		local stanza_reply = st.reply(stanza);
 		stanza_reply:tag("query", {xmlns = "moonshard:iq:register", user_id = user.user_id}):up();
 		session.send(stanza_reply);
 		timer.add_task(300, function()

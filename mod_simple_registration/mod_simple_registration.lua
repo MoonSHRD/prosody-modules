@@ -38,7 +38,7 @@ local smtp_ssl = module:get_option_boolean("smtp_ssl", false);
 local smtp_user = module:get_option_string("smtp_username");
 local smtp_pass = module:get_option_string("smtp_password");
 local smtp_address = module:get_option("smtp_from") or ((smtp_user or "noreply").."@"..(smtp_server or module.host));
-local mail_subject_prefix = module:get_option_string("email_subject_prefix")
+local mail_subject_prefix = module:get_option_string("email_subject_prefix", "Jabber server - ")
 
 local pending_registrations = {};
 local pending_usernames = {};

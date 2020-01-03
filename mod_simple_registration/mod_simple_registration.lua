@@ -1,3 +1,7 @@
+prosody.unlock_globals()
+require "ltn12";
+prosody.lock_globals()
+
 local st = require "util.stanza";
 local usermanager = require "core.usermanager";
 local dataform_new = require "util.dataforms".new;
@@ -146,9 +150,10 @@ function send_email(address, message_text, subject)
 
 	if not smtp_ssl then
 		ok, err = smtp.send{ from = smtp_address, rcpt = rcpt, source = smtp.message(mesgt),
-		        server = smtp_server, user = smtp_user, password = smtp_pass, port = smtp_port };
+				server = smtp_server, user = smtp_user, password = smtp_pass, port = smtp_port };
+	end
 	-- [[ else
-		ok, err = smtp.send{ from = smtp_address, rcpt = rcpt, source = smtp.message(mesgt),
+		--[[ok, err = smtp.send{ from = smtp_address, rcpt = rcpt, source = smtp.message(mesgt),
                 server = smtp_server, user = smtp_user, password = smtp_pass, port = smtp_port, create = enable_ssl };
 	end -- ]] -- //FIXME temporary disable ssl
 

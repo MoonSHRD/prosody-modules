@@ -143,12 +143,12 @@ module:hook("iq/host/jabber:iq:search:query", function(event)
 			s_lower(dataform.email or ""),
 			s_lower(dataform.jid or "");
 
-		local first_valid = #first >= 2 and first;
-		local last_valid  = #last  >= 2 and last;
-		local nick_valid  = #nick  >= 2 and nick;
-		local email_valid = #email >= 2 and email;
-		local jid_valid = #jid >= 2 and jid;
-		if not ( first_valid and last_valid and nick_valid and email_valid and jid_valid ) then
+		first = #first >= 2 and first;
+		last = #last  >= 2 and last;
+		nick = #nick  >= 2 and nick;
+		email = #email >= 2 and email;
+		jid = #jid >= 2 and jid;
+		if not ( first or last or nick or email or jid ) then
 			origin.send(st.error_reply(stanza, "modify", "not-acceptable", "All fields were empty or too short"));
 			return true;
 		end

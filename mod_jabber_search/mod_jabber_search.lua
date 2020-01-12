@@ -8,6 +8,7 @@ local vcard = module:require "vcard";
 local rawget, rawset = rawget, rawset;
 local s_lower = string.lower;
 local s_find = string.find;
+local dataform_new = require "util.dataforms".new;
 
 local st = require "util.stanza";
 local template = require "util.template";
@@ -31,6 +32,23 @@ local item_template = template[[
   <email>{email}</email>
 </item>
 ]];
+
+local search_form_field_map = {
+	FORM_TYPE = { name = "FORM_TYPE", type = "hidden", value = "jabber:iq:search" };
+	first = { name = "first", type = "text-single", label = "First Name" };
+	last = { name = "last", type = "text-single", label = "Last Name" };
+	nick = { name = "nick", type = "text-single", label = "Nickname" };
+	email = { name = "email", type = "text-single", label = "Email" };
+	jid = { name = "jid", type = "text-single", label = "JID" };
+};
+
+local search_dataform = dataform_new {
+	search_form_field_map.FORM_TYPE;
+	search_form_field_map.first;
+	search_form_field_map.last;
+	search_form_field_map.nick;
+	search_form_field_map.email;
+};
 
 local search_mode = module:get_option_string("vjud_mode", "opt-in");
 local allow_remote = module:get_option_boolean("allow_remote_searches", search_mode ~= "all");
@@ -71,6 +89,29 @@ local at_host = "@"..base_host;
 
 local users; -- The user iterator
 
+local function parse_data_forms(query)
+	local form = query:get_child("x", "jabber:x:data");
+	if form then
+		return search_dataform:data(form);
+	else
+		local data = {};
+		local errors = {};
+		for _, field in ipairs(search_dataform) do
+			local name, required = field.name, field.required;
+			if search_form_field_map[name] then
+				data[name] = query:get_child_text(name);
+				if (not data[name] or #data[name] == 0) and required then
+					errors[name] = "Required value missing";
+				end
+			end
+		end
+		if next(errors) then
+			return data, errors;
+		end
+		return data;
+	end
+end
+
 module:hook("iq/host/jabber:iq:search:query", function(event)
 	local origin, stanza = event.origin, event.stanza;
 
@@ -83,36 +124,50 @@ module:hook("iq/host/jabber:iq:search:query", function(event)
 		origin.send(st.reply(stanza):add_child(get_reply));
 	else -- type == "set"
 		local query = stanza.tags[1];
-		local first, last, nick, email =
-			s_lower(query:get_child_text"first" or ""),
-			s_lower(query:get_child_text"last" or ""),
-			s_lower(query:get_child_text"nick" or ""),
-			s_lower(query:get_child_text"email" or "");
+
+		local dataform, errors = parse_data_forms(query);
+		if errors then
+			module:log("debug", "Error parsing registration form:");
+			local textual_errors = {};
+			for field, err in pairs(errors) do
+				module:log("debug", "Field %q: %s", field, err);
+				table.insert(textual_errors, ("%s: %s"):format(field:gsub("^%a", string.upper), err));
+			end
+			origin.send(st.error_reply(stanza, "modify", "not-acceptable", table.concat(textual_errors, "\n")));
+			return true;
+		end
+		local first, last, nick, email, jid =
+			s_lower(dataform.first or ""),
+			s_lower(dataform.last or ""),
+			s_lower(dataform.nick or ""),
+			s_lower(dataform.email or ""),
+			s_lower(dataform.jid or "");
 
 		first = #first >= 2 and first;
 		last  = #last  >= 2 and last;
 		nick  = #nick  >= 2 and nick;
 		email = #email >= 2 and email;
-		if not ( first and last and nick and email ) then
+		jid = #jid >= 2 and jid;
+		if not ( first and last and nick and email and jid ) then
 			origin.send(st.error_reply(stanza, "modify", "not-acceptable", "All fields were empty or too short"));
 			return true;
 		end
 
 		local reply = st.reply(stanza):query("jabber:iq:search");
 
-		local username, hostname = jid_split(email);
+		local username, hostname = jid_split(jid);
 		if hostname == base_host and username and usermanager.user_exists(username, hostname) then
 			local vCard, err = get_user_vcard(username);
 			if not vCard then
 				module:log("debug", "Couldn't get vCard for user %s: %s", username, err or "unknown error");
 			else
-				reply:add_child(item_template.apply{
+				reply:add_child(search_dataform:form(search_form_field_map, {
 					jid = username..at_host;
 					first = vCard.N and vCard.N[2] or nil;
 					last = vCard.N and vCard.N[1] or nil;
 					nick = vCard.NICKNAME and vCard.NICKNAME[1] or username;
 					email = vCard.EMAIL and vCard.EMAIL[1] or nil;
-				});
+				}));
 			end
 		else
 			for username in users() do

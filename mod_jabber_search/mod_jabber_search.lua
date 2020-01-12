@@ -143,12 +143,12 @@ module:hook("iq/host/jabber:iq:search:query", function(event)
 			s_lower(dataform.email or ""),
 			s_lower(dataform.jid or "");
 
-		first = #first >= 2 and first;
-		last  = #last  >= 2 and last;
-		nick  = #nick  >= 2 and nick;
-		email = #email >= 2 and email;
-		jid = #jid >= 2 and jid;
-		if not ( first and last and nick and email and jid ) then
+		local first_valid = #first >= 2 and first;
+		local last_valid  = #last  >= 2 and last;
+		local nick_valid  = #nick  >= 2 and nick;
+		local email_valid = #email >= 2 and email;
+		local jid_valid = #jid >= 2 and jid;
+		if not ( first_valid and last_valid and nick_valid and email_valid and jid_valid ) then
 			origin.send(st.error_reply(stanza, "modify", "not-acceptable", "All fields were empty or too short"));
 			return true;
 		end
@@ -173,7 +173,7 @@ module:hook("iq/host/jabber:iq:search:query", function(event)
 			for username in users() do
 				local vCard = get_user_vcard(username);
 				if vCard
-				and ((first and vCard.N and s_find(s_lower(vCard.N[2]), first, nil, true))
+				and ((first_valid and vCard.N and s_find(s_lower(vCard.N[2]), first_valid, nil, true))
 				or (last and vCard.N and s_find(s_lower(vCard.N[1]), last, nil, true))
 				or (nick and vCard.NICKNAME and s_find(s_lower(vCard.NICKNAME[1]), nick, nil, true))
 				or (email and vCard.EMAIL and s_find(s_lower(vCard.EMAIL[1]), email, nil, true))) then

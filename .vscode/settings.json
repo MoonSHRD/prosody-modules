@@ -1,5 +1,9 @@
 {
     "Lua.diagnostics.globals": [
         "module"
-    ]
+    ],
+    "Lua.workspace.library": {
+        "/home/chronosx/Documents/code/Lua/prosody/": true,
+        "/home/chronosx/Documents/code/Lua/lua-stdlib/lib/std/": true
+    }
 }
